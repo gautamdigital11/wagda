@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login - GDA Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #050a18; --card: #111a2e; --accent: #00d2ff; --btn-grad: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); --text: #f8fafc; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Montserrat', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); 
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; 
+            background-image: radial-gradient(circle at center, #101e3d 0%, #050a18 100%); 
+        }
+        
+        .login-card { background: var(--card); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border-top: 5px solid var(--accent); text-align: center; }
+        
+        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 26px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin: 0; }
+        .sub-text { font-size: 11px; color: #94a3b8; margin-top: 5px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; }
+        
+        select, input { width: 100%; padding: 15px; border-radius: 10px; border: 2px solid rgba(0, 210, 255, 0.2); background: rgba(0,0,0,0.3); color: white; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 15px; outline: none; transition: 0.3s; }
+        select { text-align: left; appearance: none; }
+        select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); }
+        option { background: #0b132b; color: white; }
+
+        input[type="password"] { font-size: 24px; letter-spacing: 10px; font-weight: 900; text-align: center; color: #f59e0b; }
+
+        .btn-login { width: 100%; background: var(--btn-grad); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; font-weight: 900; cursor: pointer; text-transform: uppercase; transition: 0.3s; margin-top: 10px; letter-spacing: 1px; }
+        .btn-login:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(39, 174, 96, 0.4); }
+
+        #errorMsg { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px dashed #ef4444; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; margin-top: 15px; display: none; }
+        
+        .setup-link { display: inline-block; margin-top: 25px; font-size: 12px; color: #94a3b8; text-decoration: none; border-bottom: 1px dashed #94a3b8; padding-bottom: 2px; transition: 0.3s; }
+        .setup-link:hover { color: var(--accent); border-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h1 class="logo-text">GDPL ENGINE</h1>
+        <p class="sub-text">Authorized Admin Gateway</p>
+
+        <div class="form-group">
+            <label>1. Select Active Tournament</label>
+            <select id="tourSelect">
+                <option value="">⏳ Fetching Tournaments...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>2. Enter 4-Digit Security PIN</label>
+            <input type="password" id="adminPass" placeholder="••••" maxlength="4" autocomplete="off">
+        </div>
+
+        <button class="btn-login" id="loginBtn" onclick="login()">UNLOCK DASHBOARD ➔</button>
+        <div id="errorMsg">❌ ERROR: Incorrect PIN or Network Issue!</div>
+
+        <a href="setup.html" class="setup-link">Create a New Tournament Instead</a>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    // 1. Firebase Setup
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com",
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 2. Load Tournaments into Dropdown from Firebase
+    db.ref("tournaments").once("value", snap => {
+        const select = document.getElementById("tourSelect");
+        select.innerHTML = '<option value="">-- Choose Your Tournament --</option>'; 
+        
+        if(snap.exists()) {
+            const data = snap.val();
+            let count = 0;
+            for(let tourKey in data) {
+                if(data[tourKey].config) {
+                    const opt = document.createElement("option");
+                    opt.value = tourKey; // Ye Short Name (ID) hai
+                    opt.innerText = data[tourKey].config.tournamentName + " (" + tourKey + ")";
+                    select.appendChild(opt);
+                    count++;
+                }
+            }
+            if(count === 0) select.innerHTML = '<option value="">No Active Tournaments Found</option>';
+        } else {
+            select.innerHTML = '<option value="">No Active Tournaments Found</option>';
+        }
+    });
+
+    // Enter Key Press par Login chalane ke liye
+    document.getElementById("adminPass").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            login();
+        }
+    });
+
+    // 3. SECURE LOGIN LOGIC
+    async function login() {
+        const selectedTour = document.getElementById("tourSelect").value;
+        const pinEntered = document.getElementById("adminPass").value.trim();
+        const errorMsg = document.getElementById("errorMsg");
+        const btn = document.getElementById("loginBtn");
+
+        if(!selectedTour) {
+            showError("⚠️ Please select a tournament first!");
+            return;
+        }
+        if(!pinEntered || pinEntered.length !== 4) {
+            showError("⚠️ Please enter a valid 4-Digit PIN!");
+            return;
+        }
+
+        btn.innerText = "VERIFYING CREDENTIALS...";
+        btn.disabled = true;
+
+        try {
+            // Firebase se is specific tournament ka PIN mangwao
+            const snap = await db.ref("tournaments/" + selectedTour + "/config/adminPin").once("value");
+            
+            if (snap.exists() && snap.val() === pinEntered) {
+                // PIN MATCHED! (Success)
+                
+                // Puraani history saaf karo aur nayi daalo
+                localStorage.removeItem("activeTournamentID");
+                localStorage.removeItem("isLoggedIn");
+                
+                localStorage.setItem("activeTournamentID", selectedTour);
+                localStorage.setItem("isLoggedIn", "true"); 
+                
+                // Seedha Index(Hub) par bhej do
+                window.location.replace("index.html"); 
+            } else {
+                // PIN WRONG!
+                showError("❌ Incorrect PIN for " + selectedTour + "!");
+                document.getElementById("adminPass").value = ""; 
+            }
+        } catch (error) {
+            showError("⚠️ Network Error. Cannot verify PIN right now.");
+        } finally {
+            btn.innerText = "UNLOCK DASHBOARD ➔";
+            btn.disabled = false;
+        }
+    }
+
+    function showError(msg) {
+        const errorMsg = document.getElementById("errorMsg");
+        errorMsg.innerText = msg;
+        errorMsg.style.display = "block";
+    }
+</script>
+</body>
+</html>

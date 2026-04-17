@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Control - GDPL 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #1e3799; --danger: #eb4d4b; --success: #2ecc71; --warning: #f39c12; }
+        body { font-family: 'Poppins', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 30px; border-top: 6px solid var(--primary); }
+        h2 { color: var(--primary); margin-top: 0; font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        label { font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        
+        .btn { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: 0.3s; }
+        .btn-main { background: var(--primary); color: white; width: 100%; margin-top: 10px; font-size: 16px; }
+        .btn-reset { background: var(--warning); color: white; font-size: 11px; padding: 6px 12px; }
+        .btn-save { background: var(--success); color: white; padding: 6px 12px; font-size: 11px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #f8f9fa; color: #666; font-size: 12px; text-transform: uppercase; }
+        
+        .search-box { margin-bottom: 15px; background: #fffbe6; padding: 10px; border-radius: 10px; border: 1px solid #ffe58f; }
+        .status-tag { padding: 4px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; }
+        .sold { background: #e6ffed; color: #27ae60; }
+        .unsold { background: #fff1f0; color: #cf1322; }
+        .avail { background: #e6f7ff; color: #096dd9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #130f40; margin: 0;">⚙️ MASTER ADMIN CONTROL</h1>
+        <a href="index.html" style="color: var(--primary); font-weight: bold; text-decoration: none;">← Back to Dashboard</a>
+    </div>
+
+    <div class="box">
+        <h2>🏆 TOURNAMENT GLOBAL SETTINGS</h2>
+        <div class="grid">
+            <div>
+                <label>Tournament Name</label>
+                <input type="text" id="mName" placeholder="GDPL 2026">
+            </div>
+            <div>
+                <label>Default Base Price (₹)</label>
+                <input type="number" id="mBase" placeholder="1000">
+            </div>
+            <div>
+                <label>Team Purse (₹)</label>
+                <input type="number" id="mPurse" placeholder="50000">
+            </div>
+            <div>
+                <label>Squad Limit</label>
+                <input type="number" id="mSquad" placeholder="15">
+            </div>
+        </div>
+        <button class="btn btn-main" onclick="saveMaster()">UPDATE GLOBAL SETTINGS & APPLY TO ALL</button>
+    </div>
+
+    <div class="box">
+        <h2>👥 TEAM NAMES</h2>
+        <div id="teamArea">Loading Teams...</div>
+    </div>
+
+    <div class="box">
+        <h2>🏏 PLAYER LIST (Edit Price / Reset Status)</h2>
+        <div class="search-box">
+            <input type="text" id="pSearch" placeholder="Search Player Name to Edit/Reset..." onkeyup="filterPlayers()">
+        </div>
+        <div style="max-height: 500px; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Base Price (₹)</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="playerList"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script>
+    // --- 100% WORKING FIREBASE SETUP ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+      authDomain: "auction-39d98.firebaseapp.com",
+      databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+      projectId: "auction-39d98",
+      storageBucket: "auction-39d98.firebasestorage.app",
+      messagingSenderId: "278392876249",
+      appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    } else {
+        firebase.app();
+    }
+    
+    const db = firebase.database();
+
+    function init() {
+        // Load Global Info
+        db.ref("tournament_info").on("value", snap => {
+            if(snap.exists()) {
+                const d = snap.val();
+                document.getElementById("mName").value = d.name || "";
+                document.getElementById("mBase").value = d.basePrice || "";
+                document.getElementById("mPurse").value = d.purse || "";
+                document.getElementById("mSquad").value = d.squadLimit || "";
+            }
+        });
+
+        // Load Teams (Edit Name Only)
+        db.ref("teams").on("value", snap => {
+            const teams = snap.val();
+            let html = "<table>";
+            for(let key in teams) {
+                html += `<tr>
+                    <td><input type="text" id="tn_${key}" value="${teams[key].teamName}"></td>
+                    <td><button class="btn btn-save" onclick="updateTeamName('${key}')">Update Name</button></td>
+                </tr>`;
+            }
+            html += "</table>";
+            document.getElementById("teamArea").innerHTML = html;
+        });
+
+        // Load All Players
+        db.ref("players").on("value", snap => {
+            const players = snap.val();
+            let html = "";
+            for(let key in players) {
+                const p = players[key];
+                const statusClass = p.status === 'sold' ? 'sold' : (p.status === 'unsold' ? 'unsold' : 'avail');
+                
+                html += `<tr class="player-row">
+                    <td>#${p.regId}</td>
+                    <td class="p-name-cell"><b>${p.name}</b></td>
+                    <td><input type="number" id="pb_${key}" value="${p.basePrice || 0}" style="width:80px;"></td>
+                    <td><span class="status-tag ${statusClass}">${(p.status || 'available').toUpperCase()}</span></td>
+                    <td style="display:flex; gap:5px;">
+                        <button class="btn btn-save" onclick="updateBasePrice('${key}')">SAVE</button>
+                        ${(p.status === 'sold' || p.status === 'unsold') ? 
+                          `<button class="btn btn-reset" onclick="resetSinglePlayer('${key}', '${p.soldTo}', ${p.soldPrice || 0})">RESET</button>` : ''}
+                    </td>
+                </tr>`;
+            }
+            document.getElementById("playerList").innerHTML = html;
+        });
+    }
+
+    // --- SUPER UPDATE FUNCTION ---
+    async function saveMaster() {
+        const name = document.getElementById("mName").value;
+        const basePrice = parseInt(document.getElementById("mBase").value) || 0;
+        const purse = parseInt(document.getElementById("mPurse").value) || 0;
+        const squadLimit = parseInt(document.getElementById("mSquad").value) || 0;
+
+        // 1. Save to Global Info
+        await db.ref("tournament_info").set({ name, basePrice, purse, squadLimit });
+
+        if(confirm("Kya aap naya Purse sabhi Teams par aur Base Price sabhi Available Players par lagoo karna chahte hain?")) {
+            
+            // 2. Update All Teams' Purses
+            const teamSnap = await db.ref("teams").once("value");
+            if(teamSnap.exists()) {
+                const teams = teamSnap.val();
+                for(let key in teams) {
+                    const spent = parseInt(teams[key].totalPurse || 0) - parseInt(teams[key].remainingBudget || 0);
+                    let newRemaining = purse - spent;
+                    if(newRemaining < 0) newRemaining = 0; 
+
+                    await db.ref("teams/" + key).update({
+                        totalPurse: purse,
+                        remainingBudget: newRemaining
+                    });
+                }
+            }
+
+            // 3. Update Base Price for ALL 'Available' Players
+            const playerSnap = await db.ref("players").once("value");
+            if(playerSnap.exists()) {
+                const players = playerSnap.val();
+                for(let key in players) {
+                    if(players[key].status === 'available') {
+                        await db.ref("players/" + key).update({ basePrice: basePrice });
+                    }
+                }
+            }
+            alert("✅ Super Update Successful! Naya data saari teams aur players par apply ho gaya hai.");
+        } else {
+            alert("Sirf Global Settings update hui hain.");
+        }
+    }
+
+    // --- OTHER ACTION FUNCTIONS ---
+    async function updateTeamName(key) {
+        const teamName = document.getElementById(`tn_${key}`).value;
+        await db.ref("teams/" + key).update({ teamName });
+        alert("Team Name Updated!");
+    }
+
+    async function updateBasePrice(key) {
+        const basePrice = parseInt(document.getElementById(`pb_${key}`).value) || 0;
+        await db.ref("players/" + key).update({ basePrice });
+        alert("Base Price Saved!");
+    }
+
+    async function resetSinglePlayer(key, teamName, price) {
+        if(!confirm("Kya aap sirf is player ko Available karna chahte hain? Team budget automatic wapas ho jayega.")) return;
+
+        // 1. Budget Restore if Sold
+        if(teamName && teamName !== "None") {
+            const teamSnap = await db.ref("teams").orderByChild("teamName").equalTo(teamName).once("value");
+            if(teamSnap.exists()) {
+                const tKey = Object.keys(teamSnap.val())[0];
+                const currentBudget = teamSnap.val()[tKey].remainingBudget;
+                await db.ref("teams/" + tKey).update({ remainingBudget: currentBudget + parseFloat(price) });
+            }
+        }
+
+        // 2. Player Reset
+        await db.ref("players/" + key).update({ status: "available", soldTo: "None", soldPrice: 0 });
+        alert("Player Reset Successful!");
+    }
+
+    // --- SEARCH FUNCTION ---
+    function filterPlayers() {
+        const input = document.getElementById('pSearch').value.toLowerCase();
+        const rows = document.getElementsByClassName('player-row');
+        for (let row of rows) {
+            const name = row.querySelector('.p-name-cell').innerText.toLowerCase();
+            row.style.display = name.includes(input) ? "" : "none";
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

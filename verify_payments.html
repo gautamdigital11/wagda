@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Verification - GDA Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #1e3799; --success: #27ae60; --danger: #eb4d4b; --warning: #f39c12; --bg: #f1f5f9; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #333; display: none; }
+
+        /* --- 1. Header Section --- */
+        .header { 
+            background: linear-gradient(135deg, #1e3799 0%, #0c2461 100%); 
+            color: white; padding: 15px; text-align: center; 
+            position: sticky; top: 0; z-index: 100; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { margin: 0; font-size: clamp(14px, 4vw, 18px); text-transform: uppercase; letter-spacing: 1px; flex: 1; }
+        .back-link { color: white; text-decoration: none; font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 10px; text-transform: uppercase; }
+
+        .container { padding: 15px; max-width: 900px; margin: auto; }
+        
+        /* --- 2. Summary & Search --- */
+        .summary-bar { background: white; padding: 12px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 12px; font-weight: 700; border: 1px solid #e2e8f0; }
+        
+        .search-wrap { width: 100%; margin: 15px 0; position: relative; }
+        .search-wrap input { width: 100%; padding: 14px 45px; border-radius: 15px; border: 2px solid #e2e8f0; font-family: inherit; font-weight: 600; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .search-wrap::before { content: "🔍"; position: absolute; left: 18px; top: 14px; opacity: 0.5; font-size: 18px; }
+
+        /* --- 3. Player Card (Responsive) --- */
+        .verify-card { 
+            background: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; 
+            display: flex; align-items: center; gap: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); border-left: 6px solid var(--warning); 
+            animation: fadeIn 0.3s ease;
+        }
+        
+        /* Photo Zoom Enabled */
+        .p-photo-box { text-align: center; flex-shrink: 0; }
+        .p-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #eee; cursor: zoom-in; transition: 0.2s; }
+        .p-img:hover { border-color: var(--primary); }
+        .p-id { display: block; font-size: 10px; font-weight: 900; background: #eee; border-radius: 5px; margin-top: 5px; padding: 2px 0; }
+
+        .info { flex: 1; min-width: 0; }
+        .info b { font-size: 17px; color: var(--primary); text-transform: uppercase; display: block; }
+        .info span { font-size: 12px; color: #64748b; font-weight: 600; display: block; margin-top: 2px; }
+        .role { background: #f0f4ff; color: #1e3799; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; margin-top: 8px; display: inline-block; text-transform: uppercase; }
+
+        /* Screenshot Zoom Enabled */
+        .ss-box { text-align: center; flex-shrink: 0; }
+        .ss-img { width: 85px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd; cursor: zoom-in; transition: 0.2s; }
+        .ss-img:hover { border-color: var(--primary); }
+        .ss-label { font-size: 9px; font-weight: 800; color: #94a3b8; margin-top: 4px; display: block; text-transform: uppercase; }
+
+        /* Actions */
+        .actions { display: flex; flex-direction: column; gap: 10px; }
+        .btn { border: none; padding: 12px 18px; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 11px; transition: 0.2s; }
+        .btn-approve { background: var(--success); color: white; }
+        .btn-reject { background: var(--danger); color: white; }
+        .btn:active { transform: scale(0.9); }
+
+        /* 📱 MOBILE VIEW (Auto Adjust) */
+        @media (max-width: 650px) {
+            .verify-card { flex-direction: column; text-align: center; padding: 20px; }
+            .info { width: 100%; }
+            .ss-img { width: 160px; height: 220px; }
+            .actions { flex-direction: row; width: 100%; }
+            .btn { flex: 1; padding: 15px; font-size: 13px; }
+            .p-img { width: 100px; height: 100px; }
+        }
+
+        /* --- 4. Zoom Modal --- */
+        #imgModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; padding: 20px; cursor: pointer; }
+        #imgModal img { max-width: 95%; max-height: 90%; border-radius: 10px; border: 5px solid white; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        .close-hint { position: fixed; bottom: 30px; color: white; font-weight: 800; letter-spacing: 2px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="index.html" class="back-link">🔙 HUB</a>
+        <h1>Payments Verification</h1>
+        <div style="width: 60px;"></div>
+    </div>
+
+    <div class="container">
+        <div class="summary-bar">
+            <span>TOURNAMENT: <b id="tourNameDisplay" style="color: var(--primary);">--</b></span>
+            <span>PENDING: <span id="pCount" style="color: var(--danger);">0</span></span>
+        </div>
+
+        <div class="search-wrap">
+            <input type="text" id="vSearch" placeholder="प्लेयर का नाम या नंबर खोजें..." onkeyup="filterList()">
+        </div>
+
+        <div id="verifyList">
+            <p style="text-align:center; padding:100px 0; color:#94a3b8; font-weight: bold;">Loading pending registrations...</p>
+        </div>
+    </div>
+
+    <div id="imgModal" onclick="this.style.display='none'">
+        <img id="modalImg" src="">
+        <div class="close-hint">CLOSE [X]</div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    // 1. Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 2. Security Check
+    const activeTour = localStorage.getItem("activeTournamentID");
+    const authStatus = localStorage.getItem("isLoggedIn");
+
+    if (authStatus !== "true" || !activeTour) {
+        window.location.replace("login.html");
+    } else {
+        document.body.style.display = "block";
+        document.getElementById("tourNameDisplay").innerText = activeTour;
+    }
+
+    // 3. Real-time Listener (Only Pending Players)
+    db.ref("tournaments/" + activeTour + "/players").on('value', snap => {
+        const players = snap.val();
+        const container = document.getElementById("verifyList");
+        const countSpan = document.getElementById("pCount");
+        
+        container.innerHTML = "";
+        let pendingArray = [];
+
+        if (players) {
+            Object.keys(players).forEach(key => {
+                if (players[key].paymentStatus === "pending") {
+                    pendingArray.push({ key, ...players[key] });
+                }
+            });
+        }
+
+        countSpan.innerText = pendingArray.length;
+
+        if (pendingArray.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:80px 20px;">
+                    <div style="font-size: 60px;">✅</div>
+                    <h2 style="color:#cbd5e1; margin:10px 0;">SAB OK HAI!</h2>
+                    <p style="color:#94a3b8; font-weight:600;">कोई नया रजिस्ट्रेशन पेंडिंग नहीं है।</p>
+                </div>`;
+            return;
+        }
+
+        pendingArray.forEach(p => {
+            container.innerHTML += `
+                <div class="verify-card" data-search="${p.name.toLowerCase()} ${p.mobile}">
+                    <div class="p-photo-box">
+                        <img src="${p.photo}" class="p-img" onclick="viewFull(this.src)" title="खिलाड़ी देखें">
+                        <span class="p-id">ID: #${p.regId}</span>
+                    </div>
+                    
+                    <div class="info">
+                        <b>${p.name.toUpperCase()}</b>
+                        <span>📞 ${p.mobile}</span>
+                        <span>📍 ${p.address}</span>
+                        <div class="role">${p.type}</div>
+                    </div>
+
+                    <div class="ss-box">
+                        <img src="${p.paymentSS}" class="ss-img" onclick="viewFull(this.src)" title="पेमेंट देखें">
+                        <span class="ss-label">Zoom SS</span>
+                    </div>
+
+                    <div class="actions">
+                        <button class="btn btn-approve" onclick="verifyAction('${p.key}', 'verified', 'available')">APPROVE</button>
+                        <button class="btn btn-reject" onclick="verifyAction('${p.key}', 'rejected', 'blocked')">REJECT</button>
+                    </div>
+                </div>`;
+        });
+    });
+
+    // 4. Approve / Reject Logic
+    async function verifyAction(key, payStatus, playerStatus) {
+        const actionType = payStatus === 'verified' ? "Approve" : "Reject";
+        if (!confirm(`क्या आप इस खिलाड़ी को ${actionType} करना चाहते हैं?`)) return;
+
+        try {
+            await db.ref("tournaments/" + activeTour + "/players/" + key).update({
+                paymentStatus: payStatus,
+                status: playerStatus
+            });
+        } catch (e) {
+            alert("Error: " + e.message);
+        }
+    }
+
+    // 🔍 Search Functionality
+    function filterList() {
+        const val = document.getElementById("vSearch").value.toLowerCase();
+        const cards = document.getElementsByClassName("verify-card");
+        for (let c of cards) {
+            const data = c.getAttribute("data-search");
+            c.style.display = data.includes(val) ? "flex" : "none";
+        }
+    }
+
+    // 🔎 Image Zoom Function
+    function viewFull(src) {
+        document.getElementById("modalImg").src = src;
+        document.getElementById("imgModal").style.display = "flex";
+    }
+</script>
+</body>
+</html>

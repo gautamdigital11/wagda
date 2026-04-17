@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED DISPLAY</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: #050a18; color: white; margin: 0; padding: 0; overflow: hidden;
+            display: flex; flex-direction: column; min-height: 100vh;
+            background-image: radial-gradient(circle at center, #111a2e 0%, #050a18 100%);
+        }
+
+        /* --- Header --- */
+        .header-section {
+            width: 100%; background: linear-gradient(180deg, #1e3799 0%, rgba(11,19,43,0.8) 100%);
+            padding: 10px 20px; text-align: center; border-bottom: 4px solid #00d2ff;
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.1);
+        }
+        h1.league-title { color: #00d2ff; text-transform: uppercase; letter-spacing: 5px; font-size: clamp(25px, 4vw, 55px); margin: 0; font-weight: 900; }
+        .powered-by { font-size: 16px; margin-top: 5px; color: #cbd5e1; }
+        .live-dot { color: #ff0054; font-weight: 900; animation: blink 1s infinite; }
+
+        /* --- Active Bidding Section --- */
+        .current-player-card {
+            background: rgba(17, 26, 46, 0.85); width: 95%; max-width: 1300px; 
+            margin: 15px auto; padding: 25px; border-radius: 30px; border: 4px solid #00d2ff;
+            display: flex; align-items: center; justify-content: center; gap: 50px;
+            box-shadow: 0 0 40px rgba(0, 210, 255, 0.15);
+            position: relative; overflow: visible;
+        }
+        
+        .photo-wrapper { position: relative; }
+        .current-photo { 
+            width: clamp(220px, 22vw, 350px); height: clamp(220px, 22vw, 350px); 
+            border-radius: 25px; border: 6px solid #00d2ff; object-fit: fill; 
+            background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2; 
+        }
+
+        /* PLAYER ID BADGE */
+        .player-id-badge {
+            position: absolute; top: -20px; left: -20px;
+            background: linear-gradient(45deg, #f1c40f, #f39c12);
+            color: #000; font-weight: 900; font-size: 32px;
+            padding: 10px 20px; border-radius: 15px;
+            border: 4px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            z-index: 10; font-family: 'Poppins';
+        }
+        
+        .current-info { flex: 1; text-align: left; }
+        .live-tag { 
+            background: #ff0054; color: white; padding: 5px 20px; border-radius: 8px; 
+            font-size: 18px; font-weight: 900; margin-bottom: 10px; 
+            display: inline-block; text-transform: uppercase; letter-spacing: 2px;
+        }
+        .current-info h2 { 
+            margin: 0; color: #fff; font-size: clamp(40px, 5vw, 75px); 
+            text-transform: uppercase; line-height: 1.1; font-weight: 900;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        }
+        .current-info p { 
+            margin: 10px 0; font-size: clamp(20px, 2.5vw, 35px); color: #00d2ff; font-weight: 700; 
+        }
+
+        /* --- STAMP ANIMATION --- */
+        .stamp {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: clamp(70px, 10vw, 150px); font-weight: 900; text-transform: uppercase;
+            border: 10px solid; border-radius: 25px; padding: 10px 50px;
+            z-index: 20; opacity: 0; pointer-events: none;
+            background: rgba(5, 10, 24, 0.9); backdrop-filter: blur(10px);
+            display: none;
+        }
+        .stamp.sold { color: #27ae60; border-color: #27ae60; animation: stampIn 0.6s forwards; }
+        .stamp.unsold { color: #ff0054; border-color: #ff0054; animation: stampIn 0.6s forwards; }
+        @keyframes stampIn {
+            0% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(-20deg); opacity: 1; }
+        }
+
+        /* --- Teams Grid --- */
+        .display-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 12px; width: 100%; padding: 0 25px 20px; margin-top: auto;
+        }
+
+        .team-card { 
+            background: rgba(17, 26, 46, 0.95); border-radius: 15px; padding: 12px; 
+            border-top: 5px solid #00d2ff; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .team-name { 
+            font-size: 19px; font-weight: 900; color: #00d2ff; 
+            text-transform: uppercase; text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px;
+        }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;}
+        .stat-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+        .stat-val { font-size: 18px; font-weight: 900; color: white; }
+        .stat-val.purse { color: #2ecc71; }
+        .stat-val.max { color: #f1c40f; }
+
+        .error-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#050a18; z-index:9999; display:none; justify-content:center; align-items:center; flex-direction:column; text-align:center;}
+
+        @keyframes blink { 50% { opacity: 0.2; } }
+    </style>
+</head>
+<body>
+
+    <div id="errorScreen" class="error-overlay">
+        <h1 style="color:#ff0054; font-size: 40px;">⚠️ INVALID DISPLAY LINK</h1>
+        <p>Please use the secure link from Admin Dashboard.</p>
+    </div>
+
+    <div class="header-section">
+        <h1 class="league-title" id="displayTourName">GDA AUCTION ENGINE</h1>
+        <div class="powered-by">Powered by <b>Gautam Digital</b> | <span class="live-dot">● LIVE SYNC</span></div>
+    </div>
+
+    <div class="current-player-card">
+        <div class="photo-wrapper">
+            <div id="pIdDisplay" class="player-id-badge" style="display: none;">00</div>
+            <img id="curPhoto" class="current-photo" src="https://via.placeholder.com/400x400/0b132b/00d2ff?text=GD" alt="Player">
+        </div>
+        <div class="current-info">
+            <span id="liveTag" class="live-tag">⏸ WAITING</span>
+            <h2 id="curName">READY FOR AUCTION</h2>
+            <p id="curCategory">Initializing system...</p>
+        </div>
+        <div id="stampOverlay" class="stamp">SOLD</div>
+    </div>
+
+    <div id="displayBoard" class="display-grid"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 🔐 PUBLIC DECODER LOGIC
+    const urlParams = new URLSearchParams(window.location.search);
+    let activeTour = null;
+    if (urlParams.get('id')) {
+        try { activeTour = atob(urlParams.get('id')); } catch(e) { activeTour = null; }
+    } else {
+        activeTour = localStorage.getItem("activeTournamentID");
+    }
+
+    if (!activeTour) {
+        document.getElementById("errorScreen").style.display = "flex";
+    } else {
+        startLiveDisplay();
+    }
+
+    let isAnimating = false;
+    let tourData = null;
+
+    function getPhoto(link) {
+        return (link && link.trim() !== "") ? link : "https://via.placeholder.com/400x400/0b132b/00d2ff?text=GDA";
+    }
+
+    function startLiveDisplay() {
+        const tourPath = "tournaments/" + activeTour;
+
+        db.ref(tourPath).on('value', snap => {
+            tourData = snap.val();
+            if(!tourData) return;
+
+            document.getElementById("displayTourName").innerText = "🏏 " + (tourData.config.tournamentName || activeTour) + " 🏏";
+            
+            if(!isAnimating) renderUI(); 
+        });
+
+        // 5-Second Result Animation
+        db.ref(tourPath + "/live_state/trigger").on('value', (snap) => {
+            const data = snap.val();
+            if (!data || Date.now() - data.timestamp > 5000) return;
+
+            if (isAnimating) return;
+            isAnimating = true;
+
+            const player = tourData.players[data.playerId] || {};
+            const stamp = document.getElementById("stampOverlay");
+            
+            document.getElementById("curName").innerText = (player.name || "UNKNOWN").toUpperCase();
+            document.getElementById("curPhoto").src = getPhoto(player.photo);
+            document.getElementById("pIdDisplay").innerText = player.regId || "0";
+            document.getElementById("pIdDisplay").style.display = "block";
+
+            if (data.action === "SOLD") {
+                document.getElementById("curCategory").innerHTML = `<span style="color:#00d2ff">${data.team.toUpperCase()}</span> | <span style="color:#2ecc71">₹${parseInt(data.price).toLocaleString()}</span>`;
+                stamp.className = "stamp sold";
+                stamp.innerText = "SOLD";
+                confetti({ particleCount: 400, spread: 100, origin: { y: 0.7 } });
+            } else {
+                document.getElementById("curCategory").innerHTML = "PLAYER UNSOLD";
+                stamp.className = "stamp unsold";
+                stamp.innerText = "UNSOLD";
+            }
+
+            stamp.style.display = "block";
+
+            setTimeout(() => {
+                stamp.style.display = "none";
+                isAnimating = false;
+                renderUI();
+            }, 5000);
+        });
+    }
+
+    function renderUI() {
+        if (isAnimating || !tourData) return;
+
+        const liveId = tourData.live_state ? tourData.live_state.currentPlayer : null;
+        const board = document.getElementById("displayBoard");
+        const players = tourData.players || {};
+        const config = tourData.config || {};
+
+        // A. Current Player
+        if (liveId && players[liveId] && players[liveId].status === 'available') {
+            const p = players[liveId];
+            document.getElementById("liveTag").innerText = "🔴 LIVE BIDDING";
+            document.getElementById("liveTag").style.background = "#ff0054";
+            document.getElementById("curName").innerText = p.name.toUpperCase();
+            document.getElementById("pIdDisplay").innerText = p.regId || "0";
+            document.getElementById("pIdDisplay").style.display = "block";
+            document.getElementById("curCategory").innerHTML = `${p.type} | Base: ₹${(p.basePrice || config.defaultBasePrice).toLocaleString()}`;
+            document.getElementById("curPhoto").src = getPhoto(p.photo);
+        } else {
+            document.getElementById("liveTag").innerText = "⏸ PAUSED";
+            document.getElementById("liveTag").style.background = "#64748b";
+            document.getElementById("curName").innerText = "WAITING...";
+            document.getElementById("pIdDisplay").style.display = "none";
+            document.getElementById("curCategory").innerHTML = "Next player coming soon";
+            document.getElementById("curPhoto").src = getPhoto("");
+        }
+
+        // B. Teams Grid
+        board.innerHTML = "";
+        const soldArray = Object.values(players).filter(p => p.status === 'sold');
+        const limit = parseInt(config.squadLimit) || 15;
+        const base = parseInt(config.defaultBasePrice) || 1000;
+
+        Object.values(tourData.teams || {}).forEach(t => {
+            const count = soldArray.filter(p => p.soldTo === t.teamName).length;
+            const purse = parseInt(t.remainingBudget || 0);
+            let max = purse;
+            if (count < limit) max = purse - ((limit - count - 1) * base);
+            if (max < 0) max = 0;
+
+            board.innerHTML += `
+                <div class="team-card">
+                    <div class="team-name">${t.teamName}</div>
+                    <div class="stat-row"><span class="stat-label">Squad</span><span class="stat-val">${count}/${limit}</span></div>
+                    <div class="stat-row"><span class="stat-label">Purse</span><span class="stat-val purse">₹${purse.toLocaleString()}</span></div>
+                    <div class="stat-row"><span class="stat-label">Max Bid</span><span class="stat-val max">₹${max.toLocaleString()}</span></div>
+                </div>`;
+        });
+    }
+</script>
+</body>
+</html>

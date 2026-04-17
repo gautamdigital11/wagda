@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Control - GDA Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #1e3799; --accent: #00d2ff; --danger: #eb4d4b; 
+            --success: #2ecc71; --warning: #f39c12; --bg: #f1f5f9; 
+        }
+        
+        * { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #333; display: none; }
+        
+        /* --- 1. HEADER --- */
+        .header-top { 
+            background: linear-gradient(135deg, #1e3799 0%, #0c2461 100%); 
+            color: white; padding: 12px 20px; display: flex; align-items: center; 
+            justify-content: space-between; border-bottom: 4px solid var(--accent);
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .header-top h1 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .btn-action { text-decoration: none; border-radius: 20px; font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 7px 15px; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-back { background: rgba(255,255,255,0.15); color: white; }
+        .btn-del { background: #ff4757; color: white; }
+
+        .container { padding: 20px; max-width: 1100px; margin: auto; }
+
+        /* Badge Bar */
+        .tour-name-bar { background: #fff; padding: 10px 18px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: blink 1.5s infinite; }
+        .current-tour-id { font-size: 12px; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+
+        /* --- 2. BOX DESIGN --- */
+        .box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 6px solid var(--primary); }
+        h2 { color: var(--primary); margin: 0 0 20px; font-size: 17px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+
+        /* --- 3. 2-COLUMN GRID LOGIC --- */
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* Desktop: 2 Columns */
+            gap: 20px; 
+        }
+        .span-full { grid-column: 1 / -1; } /* Full width row */
+
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
+        
+        input { 
+            width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 12px; 
+            font-size: 14px; font-family: inherit; font-weight: 600; outline: none; transition: 0.3s;
+            color: #1e293b; background: #f8fafc;
+        }
+        input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px rgba(0,210,255,0.1); }
+        
+        /* Highlight Short ID */
+        #mShort { border-color: #ffeaa7; background: #fffdf5; color: #b45309; }
+
+        .btn-save-master { 
+            width: 100%; padding: 16px; background: linear-gradient(135deg, var(--primary) 0%, #0c2461 100%); 
+            color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; 
+            cursor: pointer; text-transform: uppercase; margin-top: 25px; transition: 0.3s;
+            box-shadow: 0 8px 20px rgba(30, 55, 153, 0.2);
+        }
+        .btn-save-master:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(30, 55, 153, 0.3); }
+
+        /* --- 4. TABLES --- */
+        .scroll-table { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; padding: 12px; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 600; }
+        
+        .team-input { padding: 8px 12px; font-size: 14px; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; }
+        .btn-small { padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; border: none; text-transform: uppercase; }
+        .btn-update { background: var(--success); color: white; }
+        .btn-reset { background: #fee2e2; color: #eb4d4b; border: 1px solid #ffccc7; }
+
+        .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .bg-sold { background: #dcfce7; color: #166534; }
+        .bg-unsold { background: #fee2e2; color: #991b1b; }
+        .bg-avail { background: #e0f2fe; color: #075985; }
+
+        /* 📱 MOBILE VIEW (AUTO ADJUST) */
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; } /* Force 1 column on phone */
+            .header-top h1 { font-size: 15px; }
+            .container { padding: 15px; }
+            .box { padding: 20px 15px; }
+        }
+
+        @keyframes blink { 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+
+    <div class="header-top">
+        <a href="index.html" class="btn-action btn-back">🔙 Hub</a>
+        <h1>Master Control</h1>
+        <button class="btn-action btn-del" onclick="deleteTournament()">🗑️ Delete</button>
+    </div>
+
+    <div class="container">
+        <div class="tour-name-bar">
+            <div class="status-dot"></div>
+            <span class="current-tour-id">Active: <span id="badgeName">--</span></span>
+        </div>
+
+        <div class="box">
+            <h2>🏆 Global Tournament Settings</h2>
+            <div class="form-grid">
+                <div class="form-group span-full">
+                    <label>Full Tournament Name</label>
+                    <input type="text" id="mName">
+                </div>
+
+                <div class="form-group">
+                    <label>Short ID (DB Folder) ⚠️</label>
+                    <input type="text" id="mShort">
+                </div>
+                <div class="form-group">
+                    <label>Team Purse (₹)</label>
+                    <input type="number" id="mPurse">
+                </div>
+
+                <div class="form-group">
+                    <label>Squad Limit (Players)</label>
+                    <input type="number" id="mSquad">
+                </div>
+                <div class="form-group">
+                    <label>Default Base Price (₹)</label>
+                    <input type="number" id="mBase">
+                </div>
+
+                <div class="form-group">
+                    <label>Registration Fees (₹)</label>
+                    <input type="number" id="mFees">
+                </div>
+                <div class="form-group">
+                    <label>Your UPI ID</label>
+                    <input type="text" id="mUpi">
+                </div>
+            </div>
+            <button class="btn-save-master" onclick="saveMaster()">🚀 SAVE & APPLY ALL CHANGES</button>
+        </div>
+
+        <div class="box">
+            <h2>👥 Team Names Management</h2>
+            <div class="scroll-table"><div id="teamArea">Loading...</div></div>
+        </div>
+
+        <div class="box">
+            <h2>🏏 Player List & Reset</h2>
+            <div class="scroll-table">
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Player Name</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="playerList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const authStatus = localStorage.getItem("isLoggedIn");
+    const activeTour = localStorage.getItem("activeTournamentID");
+
+    if (authStatus !== "true" || !activeTour) {
+        window.location.replace("login.html");
+    } else {
+        document.body.style.display = "block";
+    }
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    document.getElementById("badgeName").innerText = activeTour;
+    initData();
+
+    function initData() {
+        const tourPath = "tournaments/" + activeTour;
+
+        db.ref(tourPath + "/config").on("value", snap => {
+            if(snap.exists()) {
+                const d = snap.val();
+                document.getElementById("mName").value = d.tournamentName || "";
+                document.getElementById("mShort").value = d.shortName || activeTour;
+                document.getElementById("mPurse").value = d.totalPurse || "";
+                document.getElementById("mSquad").value = d.squadLimit || "";
+                document.getElementById("mBase").value = d.defaultBasePrice || "";
+                document.getElementById("mFees").value = d.regFees || 0;
+                document.getElementById("mUpi").value = d.upiId || "";
+            }
+        });
+
+        db.ref(tourPath + "/teams").on("value", snap => {
+            const teams = snap.val();
+            let html = "<table>";
+            for(let key in teams) {
+                html += `<tr>
+                    <td><input type="text" id="tn_${key}" class="team-input" value="${teams[key].teamName}"></td>
+                    <td style="width: 100px; text-align:right;"><button class="btn-small btn-update" onclick="updateTeamName('${key}')">Update</button></td>
+                </tr>`;
+            }
+            html += "</table>";
+            document.getElementById("teamArea").innerHTML = teams ? html : "No teams.";
+        });
+
+        db.ref(tourPath + "/players").on("value", snap => {
+            const players = snap.val();
+            let html = "";
+            for(let key in players) {
+                const p = players[key];
+                const sCls = p.status === 'sold' ? 'bg-sold' : (p.status === 'unsold' ? 'bg-unsold' : 'bg-avail');
+                html += `<tr>
+                    <td>#${p.regId}</td>
+                    <td><b>${p.name.toUpperCase()}</b></td>
+                    <td><span class="status-badge ${sCls}">${(p.status || 'avail').toUpperCase()}</span></td>
+                    <td>${(p.status!=='available') ? `<button class="btn-small btn-reset" onclick="resetPlayer('${key}','${p.soldTo}',${p.soldPrice||0})">RESET</button>` : '--'}</td>
+                </tr>`;
+            }
+            document.getElementById("playerList").innerHTML = html;
+        });
+    }
+
+    async function saveMaster() {
+        const newShort = document.getElementById("mShort").value.trim().toUpperCase().replace(/\s+/g, '_');
+        const name = document.getElementById("mName").value.trim();
+        const purse = parseInt(document.getElementById("mPurse").value);
+        const squad = parseInt(document.getElementById("mSquad").value);
+        const base = parseInt(document.getElementById("mBase").value);
+        const fees = parseInt(document.getElementById("mFees").value);
+        const upi = document.getElementById("mUpi").value.trim();
+
+        if(!newShort) return alert("Short ID is required!");
+
+        // 1. Data Migration (If Short ID Changed)
+        if(newShort !== activeTour) {
+            const pin = prompt("🛑 WARNING: Moving all data to " + newShort + ".\n\nEnter Admin PIN:");
+            const configSnap = await db.ref("tournaments/" + activeTour + "/config/adminPin").once("value");
+            if(pin === configSnap.val().toString()) {
+                const dataSnap = await db.ref("tournaments/" + activeTour).once("value");
+                const fullData = dataSnap.val();
+                fullData.config.shortName = newShort;
+                fullData.config.tournamentName = name;
+                fullData.config.totalPurse = purse;
+                fullData.config.squadLimit = squad;
+                fullData.config.defaultBasePrice = base;
+                fullData.config.regFees = fees;
+                fullData.config.upiId = upi;
+                await db.ref("tournaments/" + newShort).set(fullData);
+                await db.ref("tournaments/" + activeTour).remove();
+                localStorage.setItem("activeTournamentID", newShort);
+                location.reload();
+            } else { alert("Wrong PIN!"); }
+            return;
+        }
+
+        // 2. Normal Config Update
+        await db.ref("tournaments/" + activeTour + "/config").update({
+            tournamentName: name, totalPurse: purse, squadLimit: squad, 
+            defaultBasePrice: base, regFees: fees, upiId: upi
+        });
+
+        // 🟢 3. THE FIX: SYNC PURSE TO ALL TEAMS 
+        const teamSnap = await db.ref("tournaments/" + activeTour + "/teams").once("value");
+        if(teamSnap.exists()) {
+            const teams = teamSnap.val();
+            const teamUpdates = {};
+            
+            for(let key in teams) {
+                let oldTotal = parseInt(teams[key].totalPurse || 0);
+                let oldRemaining = parseInt(teams[key].remainingBudget || 0);
+                
+                let spent = oldTotal - oldRemaining; 
+                let newRemaining = purse - spent; 
+                if(newRemaining < 0) newRemaining = 0; 
+
+                teamUpdates[key + "/totalPurse"] = purse;
+                teamUpdates[key + "/remainingBudget"] = newRemaining;
+            }
+            
+            await db.ref("tournaments/" + activeTour + "/teams").update(teamUpdates);
+        }
+
+        alert("✅ Settings & Team Purses Updated Successfully!");
+        location.reload(); 
+    }
+
+    async function deleteTournament() {
+        const pinInput = prompt("🛑 DELETE TOURNAMENT PERMANENTLY?\nEnter Admin PIN:");
+        const configSnap = await db.ref("tournaments/" + activeTour + "/config/adminPin").once("value");
+        if (pinInput === configSnap.val().toString()) {
+            if(confirm("Are you 100% sure?")) {
+                await db.ref("tournaments/" + activeTour).remove();
+                localStorage.clear();
+                window.location.replace("setup.html");
+            }
+        } else { alert("Incorrect PIN!"); }
+    }
+
+    async function updateTeamName(key) {
+        const teamName = document.getElementById(`tn_${key}`).value;
+        await db.ref("tournaments/" + activeTour + "/teams/" + key).update({ teamName });
+        alert("Saved!");
+    }
+
+    async function resetPlayer(key, tName, prc) {
+        if(!confirm("Reset player and restore budget?")) return;
+        const path = "tournaments/" + activeTour;
+        if(tName && tName !== "None") {
+            const tSnap = await db.ref(path + "/teams").orderByChild("teamName").equalTo(tName).once("value");
+            if(tSnap.exists()) {
+                const tk = Object.keys(tSnap.val())[0];
+                const cur = tSnap.val()[tk].remainingBudget;
+                await db.ref(path + "/teams/" + tk).update({ remainingBudget: cur + prc });
+            }
+        }
+        await db.ref(path + "/players/" + key).update({ status: "available", soldTo: "None", soldPrice: 0 });
+    }
+</script>
+</body>
+</html>

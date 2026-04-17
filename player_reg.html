@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Registration </title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #1e3799; --accent: #4a69bd; --success: #27ae60; --danger: #c0392b; --warning: #f1c40f; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1e3799 0%, #0c2461 100%); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; flex-direction: column; }
+        
+        .tour-badge { background: var(--warning); color: #000; padding: 5px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        .reg-card { background: white; padding: 25px; border-radius: 25px; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border-top: 8px solid var(--primary); box-sizing: border-box; }
+        h2 { color: var(--primary); margin: 0 0 15px; font-size: 20px; text-transform: uppercase; font-weight: 800; }
+        
+        /* 💳 PAYMENT BOX STYLE */
+        .payment-box { background: #fffbe6; border: 2px dashed var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 20px; }
+        .fee-tag { font-size: 18px; font-weight: 800; color: var(--danger); display: block; margin-bottom: 10px; }
+        .btn-pay { display: inline-block; background: var(--success); color: white; padding: 10px 25px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3); }
+        .btn-pay:active { transform: scale(0.95); }
+
+        .form-group { text-align: left; margin-bottom: 12px; }
+        label { font-size: 11px; font-weight: 700; color: #555; display: block; margin-bottom: 4px; text-transform: uppercase; }
+        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #eee; box-sizing: border-box; outline: none; font-family: inherit; font-size: 14px; font-weight: 600; }
+        input:focus { border-color: var(--accent); background: #f9faff; }
+
+        .btn-submit { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 16px; margin-top: 10px; text-transform: uppercase; }
+        .btn-submit:hover { background: #0c2461; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        
+        /* ID CARD */
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; }
+        #idCard { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 30px; width: 320px; z-index: 1000; border: 5px solid var(--primary); text-align: center; }
+        .card-banner { background: var(--primary); color: white; padding: 15px; margin: -25px -25px 20px -25px; border-radius: 20px 20px 0 0; }
+        .player-photo-circle { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 5px solid var(--primary); margin: 0 auto 15px; display: block; background: #eee; }
+        .reg-id-badge { background: #f8f9fa; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 2px solid #eee; }
+        .reg-id-badge b { font-size: 28px; color: var(--danger); }
+        .pending-tag { color: var(--warning); font-weight: 800; font-size: 12px; text-transform: uppercase; display: block; margin-top: 5px; }
+
+        .error-box { display: none; background: #fee2e2; color: #b91c1c; padding: 20px; border-radius: 15px; border: 2px solid #ef4444; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="tour-badge" id="activeBadge">🏆 Loading Tournament...</div>
+
+<div class="reg-card">
+    <h2 id="formTitle">REGISTRATION FORM</h2>
+    
+    <div id="errorBox" class="error-box">⚠️ INVALID REGISTRATION LINK!</div>
+
+    <div id="formContainer">
+        <div class="payment-box">
+            <span class="fee-tag">Entry Fee: ₹<span id="displayFees">0</span></span>
+            <div id="qrContainer" style="margin-bottom: 10px;"></div>
+            <a href="#" id="payNowBtn" class="btn-pay">📲 PAY VIA UPI APP</a>
+            <p style="font-size: 10px; color: #666; margin-top: 8px; font-weight: 600;">Payment के बाद Screenshot ज़रूर अपलोड करें।</p>
+        </div>
+
+        <form id="regForm">
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="pName" placeholder="Enter name" required>
+            </div>
+            <div class="form-group">
+                <label>WhatsApp Number *</label>
+                <input type="tel" id="pMobile" maxlength="10" placeholder="10 Digit Number" required>
+            </div>
+            <div class="form-group">
+                <label>Address / City *</label>
+                <input type="text" id="pAddress" placeholder="Your location" required>
+            </div>
+            <div class="form-group">
+                <label>Player Category *</label>
+                <select id="pType" required>
+                    <option value="">-- Select --</option>
+                    <option value="All Rounder">All Rounder</option>
+                    <option value="Batsman">Batsman</option>
+                    <option value="Bowler">Bowler</option>
+                    <option value="Wicket Keeper">Wicket Keeper</option>
+                </select>
+            </div>
+            <div class="form-group" style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label>Jersey Size</label>
+                    <select id="pSize">
+                        <option value="S">S</option><option value="M">M</option><option value="L" selected>L</option>
+                        <option value="XL">XL</option><option value="XXL">XXL</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label>Jersey No.</label>
+                    <input type="number" id="pJerseyNo" placeholder="07">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Player Photo *</label>
+                <input type="file" id="pPhoto" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label style="color: var(--danger);">Payment Screenshot *</label>
+                <input type="file" id="pScreenshot" accept="image/*" required>
+            </div>
+            <button type="submit" id="btnSubmit" class="btn-submit">Submit Registration</button>
+        </form>
+    </div>
+</div>
+
+<div id="overlay"></div>
+<div id="idCard">
+    <div class="card-banner"><h3 id="cardTourName">--</h3><small>Registration Success</small></div>
+    <img id="cardPhotoDisplay" src="" class="player-photo-circle">
+    <h3 id="cardNameDisplay">PLAYER NAME</h3>
+    <div class="reg-id-badge">
+        <small>YOUR PROVISIONAL ID</small><br>
+        <b>#<span id="cardIdDisplay">000</span></b>
+        <span class="pending-tag">⏳ Verification Pending</span>
+    </div>
+    <p style="font-size: 11px; color: #666; line-height: 1.4;">आपका रजिस्ट्रेशन सफल रहा। एडमिन द्वारा पेमेंट वेरीफाई होने के बाद आप ऑक्शन में शामिल हो पाएंगे।</p>
+    <button onclick="window.location.reload()" style="width:100%; padding:12px; border-radius:12px; border:none; background:#eee; font-weight:800; cursor:pointer; margin-top:10px;">DONE</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com",
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let activeTour = urlParams.get('id') ? atob(urlParams.get('id')) : localStorage.getItem("activeTournamentID");
+
+    let defaultBasePrice = 1000;
+
+    if (!activeTour) {
+        document.getElementById("formContainer").style.display = "none";
+        document.getElementById("errorBox").style.display = "block";
+    } else {
+        document.getElementById("activeBadge").innerText = "🏆 Open For: " + activeTour;
+        document.getElementById("formTitle").innerText = activeTour + " Registration";
+        
+        // Fetch Fees, UPI and Base Price
+        db.ref("tournaments/" + activeTour + "/config").once("value", snap => {
+            const conf = snap.val();
+            if(conf) {
+                const fees = conf.regFees || 0;
+                const upi = conf.upiId || "";
+                defaultBasePrice = conf.defaultBasePrice || 1000;
+                
+                document.getElementById("displayFees").innerText = fees;
+                
+                // Generate QR and Pay Link
+                const payUrl = `upi://pay?pa=${upi}&pn=${encodeURIComponent(activeTour)}&am=${fees}&cu=INR`;
+                document.getElementById("payNowBtn").href = payUrl;
+                document.getElementById("qrContainer").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(payUrl)}" width="120" style="border-radius:10px; border:2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">`;
+            }
+        });
+    }
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    document.getElementById('regForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+
+        try {
+            const photoFile = document.getElementById('pPhoto').files[0];
+            const ssFile = document.getElementById('pScreenshot').files[0];
+            const photoBase64 = await toBase64(photoFile);
+            const ssBase64 = await toBase64(ssFile);
+
+            const tourPath = "tournaments/" + activeTour + "/players";
+            const snapshot = await db.ref(tourPath).once("value");
+            const regId = String(snapshot.numChildren() + 1).padStart(3, '0');
+
+            const playerData = {
+                regId: regId,
+                name: document.getElementById('pName').value.trim(),
+                mobile: document.getElementById('pMobile').value,
+                address: document.getElementById('pAddress').value,
+                type: document.getElementById('pType').value, 
+                jerseySize: document.getElementById('pSize').value,
+                jerseyNo: document.getElementById('pJerseyNo').value || "00",
+                printName: document.getElementById('pName').value.trim(), // Default
+                photo: photoBase64,
+                paymentSS: ssBase64,
+                
+                // --- 🛡️ VERIFICATION LOGIC ---
+                status: "pending",          // Not visible in auction yet
+                paymentStatus: "pending",   // Needs admin approval
+                
+                basePrice: defaultBasePrice,
+                soldTo: "None",
+                soldPrice: 0
+            };
+
+            await db.ref(tourPath + "/" + regId).set(playerData);
+
+            // Show Success Card
+            document.getElementById('cardTourName').innerText = activeTour;
+            document.getElementById('cardNameDisplay').innerText = playerData.name.toUpperCase();
+            document.getElementById('cardIdDisplay').innerText = regId;
+            document.getElementById('cardPhotoDisplay').src = photoBase64;
+            document.getElementById('idCard').style.display = "block";
+            document.getElementById('overlay').style.display = "block";
+
+        } catch (err) {
+            alert("Error: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "Submit Registration";
+        }
+    };
+</script>
+</body>
+</html>

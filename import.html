@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Import (Verify Mode) - GDA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { --primary: #1e3799; --accent: #00d2ff; --success: #27ae60; --bg: #f1f5f9; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: none; }
+        .header { background: linear-gradient(135deg, #1e3799 0%, #0c2461 100%); color: white; padding: 15px 20px; border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
+        .back-link { color: white; text-decoration: none; font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 10px; text-transform: uppercase; }
+        .container { max-width: 900px; margin: auto; }
+        .upload-card { background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 8px solid var(--primary); margin-bottom: 20px; }
+        .instruction { font-size: 13px; color: #64748b; margin-bottom: 25px; font-weight: 600; background: #fff8e1; padding: 15px; border-radius: 10px; border: 1px dashed #ffb300; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; margin-bottom: 20px; width: 100%; }
+        .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
+        .btn-upload-box { border: 2px dashed var(--primary); background: #f8fafc; padding: 40px 20px; border-radius: 15px; font-weight: 800; color: var(--primary); font-size: 15px; transition: 0.3s; text-transform: uppercase; }
+        .btn-submit { width: 100%; padding: 18px; background: var(--success); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 16px; text-transform: uppercase; transition: 0.3s; }
+        .progress-box { margin-top: 20px; padding: 15px; background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; color: #166534; font-weight: 800; display: none; }
+        .table-wrapper { overflow-x: auto; background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+        th { background: #f8fafc; font-weight: 800; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-link">🔙 HUB</a>
+            <h1 id="tourNameDisplay">BULK IMPORT & VERIFY</h1>
+        </div>
+
+        <div class="upload-card">
+            <h2>📥 Import Players for Verification</h2>
+            <div class="instruction">
+                <b>⚠️ Important Notice:</b> Players imported will go to <b>Verification Center</b> first.<br>
+                Columns: <b style="color: var(--primary);">Name, Mobile, Address, Type, BasePrice, JerseyNo, JerseySize, PrintName, PhotoURL, PaymentSS</b>
+            </div>
+            
+            <div class="file-input-wrapper">
+                <div class="btn-upload-box" id="dropText">📂 SELECT CSV WITH PAYMENT SCREENSHOTS</div>
+                <input type="file" id="csvFile" accept=".csv" onchange="previewCSV(event)">
+            </div>
+
+            <button id="btnImport" class="btn-submit" disabled onclick="startImport()">🚀 START IMPORT TO PENDING LIST</button>
+            <div id="progressBox" class="progress-box">Processing...</div>
+        </div>
+
+        <div id="previewArea" style="display:none;">
+            <p style="font-weight:800; color:var(--primary);">👀 PREVIEW (First 5 Rows):</p>
+            <div class="table-wrapper">
+                <table id="previewTable">
+                    <thead><tr id="tableHead"></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const activeTour = localStorage.getItem("activeTournamentID");
+    const authStatus = localStorage.getItem("isLoggedIn");
+    if (authStatus !== "true" || !activeTour) window.location.replace("login.html");
+    else document.body.style.display = "block";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let parsedData = [];
+    let defaultBasePrice = 1000;
+
+    db.ref("tournaments/" + activeTour + "/config/defaultBasePrice").once("value").then(snap => {
+        if(snap.exists()) defaultBasePrice = parseInt(snap.val());
+    });
+
+    function fixDriveLink(url) {
+        if (!url || url.trim() === "") return "";
+        let idMatch = url.match(/(?:id=|file\/d\/|open\?id=)([a-zA-Z0-9_-]{25,})/);
+        return idMatch ? `https://lh3.googleusercontent.com/d/${idMatch[1]}` : url.trim();
+    }
+
+    function getVal(obj, colName) {
+        const target = colName.toLowerCase().replace(/\s/g, '');
+        const key = Object.keys(obj).find(k => k.toLowerCase().replace(/\s/g, '') === target);
+        return key ? obj[key].trim() : "";
+    }
+
+    function previewCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        document.getElementById("dropText").innerText = "📄 " + file.name;
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                parsedData = results.data;
+                if(parsedData.length > 0) {
+                    document.getElementById("btnImport").disabled = false;
+                    document.getElementById("previewArea").style.display = "block";
+                    renderPreview();
+                }
+            }
+        });
+    }
+
+    function renderPreview() {
+        const thead = document.getElementById("tableHead");
+        const tbody = document.getElementById("tableBody");
+        thead.innerHTML = ""; tbody.innerHTML = "";
+        const headers = Object.keys(parsedData[0]);
+        headers.forEach(h => { const th = document.createElement("th"); th.innerText = h; thead.appendChild(th); });
+        const limit = Math.min(parsedData.length, 5);
+        for(let i=0; i<limit; i++) {
+            const tr = document.createElement("tr");
+            headers.forEach(h => { const td = document.createElement("td"); td.innerText = parsedData[i][h] || "-"; tr.appendChild(td); });
+            tbody.appendChild(tr);
+        }
+    }
+
+    async function startImport() {
+        if(!confirm(`Import ${parsedData.length} players as PENDING?`)) return;
+        const btn = document.getElementById("btnImport");
+        const prog = document.getElementById("progressBox");
+        btn.disabled = true; prog.style.display = "block";
+        
+        try {
+            const tourPath = "tournaments/" + activeTour + "/players";
+            const snap = await db.ref(tourPath).once("value");
+            let count = snap.numChildren();
+            const updates = {};
+            const safeDummy = "https://ui-avatars.com/api/?background=eee&color=999&name=P";
+
+            parsedData.forEach((player) => {
+                const pName = getVal(player, "name");
+                if(!pName) return;
+                count++;
+                const regId = String(count).padStart(3, '0');
+                
+                // Photo & Screenshot Fixing
+                let fPhoto = fixDriveLink(getVal(player, "photourl"));
+                if(!fPhoto) fPhoto = `https://ui-avatars.com/api/?name=${encodeURIComponent(pName)}&background=1e3799&color=fff`;
+                
+                let fSS = fixDriveLink(getVal(player, "paymentss"));
+                if(!fSS) fSS = safeDummy;
+
+                updates[regId] = {
+                    regId: regId,
+                    name: pName,
+                    mobile: getVal(player, "mobile"),
+                    address: getVal(player, "address"),
+                    type: getVal(player, "type") || "Player",
+                    jerseySize: getVal(player, "jerseysize") || "L",
+                    jerseyNo: getVal(player, "jerseyno") || "00",
+                    printName: getVal(player, "printname") || pName,
+                    photo: fPhoto,
+                    paymentSS: fSS, // 👈 Excel se Screenshot link
+                    status: "pending", // 👈 Sidhe Verify page me jayenge
+                    paymentStatus: "pending", // 👈 Verification jaruri hai
+                    basePrice: parseInt(getVal(player, "baseprice")) || defaultBasePrice,
+                    soldTo: "None", soldPrice: 0
+                };
+            });
+
+            await db.ref(tourPath).update(updates);
+            prog.innerText = "✅ Successfully imported to Pending List!";
+            setTimeout(() => window.location.replace("verify_payments.html"), 2000);
+        } catch (e) { alert(e.message); btn.disabled = false; }
+    }
+</script>
+</body>
+</html>

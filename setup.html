@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Setup - Gautam Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #0f172a; /* Premium Dark Blue */
+            --secondary: #1d4ed8; /* Bright Blue */
+            --accent: #f59e0b; /* Golden Yellow for Highlight */
+            --bg: #f1f5f9; /* Clean Light Grey Background */
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+        }
+        
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+
+        .setup-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 24px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06); 
+            width: 100%; 
+            max-width: 700px; /* Perfect for tablets */
+            border-top: 6px solid var(--secondary); 
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle Background pattern/gradient for top */
+        .setup-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 120px;
+            background: linear-gradient(180deg, rgba(29, 78, 216, 0.05) 0%, rgba(255,255,255,0) 100%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 35px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h2 { 
+            color: var(--primary); 
+            margin: 0 0 8px 0; 
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 0.5px; 
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            position: relative;
+            z-index: 1;
+        }
+
+        .full-width { grid-column: span 2; }
+        
+        .form-group { display: flex; flex-direction: column; }
+        
+        label { 
+            font-size: 13px; 
+            font-weight: 600; 
+            color: var(--text-dark); 
+            margin-bottom: 8px; 
+        }
+
+        input { 
+            width: 100%; 
+            padding: 14px 16px; 
+            background: var(--input-bg);
+            border: 2px solid var(--border-color); 
+            border-radius: 12px; 
+            font-size: 15px; 
+            font-family: inherit; 
+            font-weight: 500; 
+            color: var(--text-dark);
+            outline: none; 
+            transition: all 0.3s ease; 
+        }
+
+        input::placeholder { color: #94a3b8; font-weight: 400; }
+
+        input:focus { 
+            border-color: var(--secondary); 
+            background: white; 
+            box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1); 
+        }
+        
+        /* Pin specific style */
+        #adminPin { 
+            letter-spacing: 12px; 
+            font-size: 20px; 
+            text-align: center; 
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .btn-save { 
+            width: 100%; 
+            padding: 16px; 
+            background: linear-gradient(135deg, var(--secondary), var(--primary)); 
+            color: white; 
+            border: none; 
+            border-radius: 14px; 
+            font-size: 16px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            letter-spacing: 0.5px;
+            margin-top: 30px; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 8px 20px rgba(29, 78, 216, 0.25);
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(29, 78, 216, 0.35);
+        }
+        
+        /* Modal Style */
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(5px);
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+            padding: 20px; 
+        }
+
+        .success-modal { 
+            background: white; 
+            border-radius: 24px; 
+            padding: 40px 30px; 
+            width: 100%; 
+            max-width: 420px; 
+            text-align: center; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            animation: zoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        }
+
+        .success-icon {
+            font-size: 60px;
+            line-height: 1;
+            margin-bottom: 15px;
+        }
+
+        .success-modal h3 {
+            color: var(--primary);
+            margin: 0 0 20px 0;
+            font-weight: 800;
+        }
+
+        .details-box { 
+            background: var(--input-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 16px; 
+            padding: 20px; 
+            margin: 20px 0; 
+            text-align: left; 
+        }
+
+        .details-box p { 
+            margin: 10px 0; 
+            font-size: 14px; 
+            font-weight: 500; 
+            color: var(--text-muted); 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 8px;
+        }
+
+        .details-box p:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .details-box span { 
+            color: var(--primary); 
+            font-weight: 700; 
+            font-size: 15px;
+        }
+
+        .btn-ok { 
+            background: var(--text-dark); 
+            color: white; 
+            padding: 14px; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            width: 100%; 
+            transition: 0.3s;
+        }
+
+        .btn-ok:hover { background: black; }
+
+        @keyframes zoomIn { 
+            from { transform: scale(0.8); opacity: 0; } 
+            to { transform: scale(1); opacity: 1; } 
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; gap: 15px; }
+            .full-width { grid-column: span 1; }
+            .setup-card { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="setup-card">
+    <div class="header-section">
+        <h2>🏆 Tournament Setup</h2>
+        <div class="subtitle">Gautam Digital Auction Control Panel</div>
+    </div>
+    
+    <div class="form-grid">
+        <div class="form-group full-width">
+            <label>Full Tournament Name</label>
+            <input type="text" id="tourName" placeholder="e.g. Seoni Premier League 2026">
+        </div>
+        <div class="form-group">
+            <label>Short Name (No Space)</label>
+            <input type="text" id="shortName" placeholder="e.g. SPL">
+        </div>
+        <div class="form-group">
+            <label>Admin Secret PIN (4 Digits)</label>
+            <input type="text" id="adminPin" placeholder="••••" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+        </div>
+        <div class="form-group">
+            <label>Team Purse (₹)</label>
+            <input type="number" id="totalPurse" value="50000">
+        </div>
+        <div class="form-group">
+            <label>Max Players / Team</label>
+            <input type="number" id="squadLimit" value="15">
+        </div>
+        <div class="form-group full-width">
+            <label>Default Base Price (₹)</label>
+            <input type="number" id="basePrice" value="1000">
+        </div>
+        <div class="form-group">
+            <label>Registration Fees (₹)</label>
+            <input type="number" id="regFees" placeholder="e.g. 301">
+        </div>
+        <div class="form-group">
+            <label>Your UPI ID (For QR)</label>
+            <input type="text" id="upiId" placeholder="7999984007@ybl">
+        </div>
+    </div>
+
+    <button class="btn-save" onclick="saveSetup()"> Create Tournament 🚀</button>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="success-modal">
+        <div class="success-icon">✅</div>
+        <h3>CONGRATULATIONS!</h3>
+        <p style="color: #64748b; font-size: 14px; margin-top: -10px;">Setup initialized successfully.</p>
+        <div class="details-box">
+            <p>Tournament ID: <span id="mID">--</span></p>
+            <p>Admin PIN: <span id="mPIN">--</span></p>
+            <p>Reg. Fee: <span id="mFee">--</span></p>
+            <p>Purse/Team: <span id="mPurse">--</span></p>
+        </div>
+        <button class="btn-ok" onclick="goToLogin()">LOGIN TO CONTROL ➜</button>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+        authDomain: "auction-39d98.firebaseapp.com",
+        databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+        projectId: "auction-39d98",
+        storageBucket: "auction-39d98.firebasestorage.app",
+        messagingSenderId: "278392876249",
+        appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function saveSetup() {
+        const name = document.getElementById("tourName").value.trim();
+        const shortName = document.getElementById("shortName").value.trim().toUpperCase();
+        const pin = document.getElementById("adminPin").value.trim();
+        const purse = document.getElementById("totalPurse").value;
+        const squad = document.getElementById("squadLimit").value;
+        const base = document.getElementById("basePrice").value;
+        const fees = document.getElementById("regFees").value || 0;
+        const upi = document.getElementById("upiId").value.trim();
+
+        // 🚨 Strict 4-Digit Pin Check
+        if(pin.length !== 4) {
+            alert("⚠️ Admin PIN must be exactly 4 digits long!");
+            document.getElementById("adminPin").focus();
+            return;
+        }
+
+        if(!name || !shortName || !upi) {
+            alert("⚠️ Please fill all required fields!");
+            return;
+        }
+
+        try {
+            const check = await db.ref("tournaments/" + shortName).once("value");
+            if(check.exists()) {
+                if(!confirm("⚠️ Short ID already exists! Overwrite?")) return;
+            }
+
+            const tourPath = "tournaments/" + shortName;
+
+            await db.ref(tourPath + "/config").set({
+                tournamentName: name,
+                shortName: shortName,
+                adminPin: pin,
+                totalPurse: parseInt(purse),
+                squadLimit: parseInt(squad),
+                defaultBasePrice: parseInt(base),
+                regFees: parseInt(fees),
+                upiId: upi,
+                createdAt: Date.now()
+            });
+
+            await db.ref(tourPath + "/live_state").set({ currentPlayer: "", status: "paused" });
+
+            document.getElementById("mID").innerText = shortName;
+            document.getElementById("mPIN").innerText = pin;
+            document.getElementById("mFee").innerText = "₹" + fees;
+            document.getElementById("mPurse").innerText = "₹" + purse;
+            document.getElementById("modalOverlay").style.display = "flex";
+
+        } catch (error) {
+            alert("❌ Error: " + error.message);
+        }
+    }
+
+    function goToLogin() {
+        localStorage.clear();
+        window.location.replace("login.html");
+    }
+</script>
+
+</body>
+</html>

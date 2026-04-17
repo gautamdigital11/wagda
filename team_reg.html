@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Registration - GDPL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6c5ce7; --accent: #a29bfe; --success: #00b894; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: linear-gradient(135deg, #6c5ce7 0%, #4834d4 100%); 
+            margin: 0; display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; padding: 20px; 
+        }
+        .reg-card { 
+            background: white; padding: 30px; border-radius: 25px; 
+            width: 100%; max-width: 400px; text-align: center; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3); border-top: 8px solid var(--primary); 
+        }
+        h2 { color: var(--primary); margin-bottom: 5px; }
+        p { font-size: 12px; color: #666; margin-bottom: 20px; }
+        
+        .form-group { text-align: left; margin-bottom: 15px; }
+        label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
+        input { 
+            width: 100%; padding: 12px; border-radius: 10px; 
+            border: 2px solid #eee; box-sizing: border-box; outline: none; 
+            font-family: inherit;
+        }
+        input:focus { border-color: var(--accent); }
+        
+        .btn-submit { 
+            width: 100%; padding: 15px; background: var(--primary); 
+            color: white; border: none; border-radius: 12px; 
+            font-weight: 600; cursor: pointer; font-size: 16px; 
+            transition: 0.3s; margin-top: 10px;
+        }
+        .btn-submit:hover { background: #4834d4; transform: translateY(-2px); }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .back-link { display: block; margin-top: 20px; text-decoration: none; color: #888; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="reg-card">
+    <h2>🏏 TEAM ENTRY</h2>
+    <p>GDPL 2026 - Register New Team</p>
+
+    <form id="teamForm">
+        <div class="form-group">
+            <label>TEAM NAME *</label>
+            <input type="text" id="tName" placeholder="e.g. Seoni Stars" required>
+        </div>
+        
+        <div class="form-group">
+            <label>OWNER NAME *</label>
+            <input type="text" id="tOwner" placeholder="Owner Full Name" required>
+        </div>
+
+        <div class="form-group">
+            <label>TEAM LOGO *</label>
+            <input type="file" id="tLogo" accept="image/*" required>
+        </div>
+
+        <button type="submit" id="btnSubmit" class="btn-submit">REGISTER TEAM</button>
+    </form>
+    
+    <a href="index.html" class="back-link">← Back to Dashboard</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    // Firebase Configuration
+    const firebaseConfig = { databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Image to Base64 Function
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    document.getElementById('teamForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerText = "Saving Team...";
+
+        try {
+            const name = document.getElementById('tName').value;
+            const owner = document.getElementById('tOwner').value;
+            const logoFile = document.getElementById('tLogo').files[0];
+            const logoBase64 = await toBase64(logoFile);
+
+            // 1. Tournament Info se Purse (Budget) fetch karna
+            const setupSnap = await db.ref("tournament_info").once("value");
+            const setupData = setupSnap.val();
+            
+            // Agar setup mein purse nahi hai toh default 50000 rakhega
+            const tournamentPurse = setupData ? parseFloat(setupData.purse) : 50000;
+
+            // 2. Sequence ID Generation (T01, T02...)
+            const teamSnap = await db.ref("teams").once("value");
+            const nextNum = teamSnap.numChildren() + 1;
+            const teamId = "T" + String(nextNum).padStart(2, '0');
+
+            // 3. Team Data Object
+            const teamData = {
+                teamId: teamId,
+                teamName: name,
+                owner: owner,
+                logo: logoBase64,
+                totalPurse: tournamentPurse,
+                remainingBudget: tournamentPurse, // Shuruat mein full budget available
+                squadCount: 0
+            };
+
+            // 4. Save to Firebase
+            await db.ref("teams/" + teamId).set(teamData);
+
+            alert("Team " + name + " successfully register ho gayi! ID: " + teamId);
+            document.getElementById('teamForm').reset();
+
+        } catch (err) {
+            console.error(err);
+            alert("Error: Data save nahi ho saka.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "REGISTER TEAM";
+        }
+    };
+</script>
+
+</body>
+</html>

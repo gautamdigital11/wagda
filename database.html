@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDPL - Registered Player List</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #0b132b; 
+            --accent: #00a8ff; 
+            --success: #27ae60; 
+            --danger: #ef4444; 
+            --bg: #f4f7f6; 
+        }
+        
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); }
+
+        .header { text-align: center; border-bottom: 3px solid var(--primary); padding-bottom: 20px; margin-bottom: 30px; position: relative; }
+        .header h1 { margin: 0; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; font-weight: 800; }
+        
+        .db-status { position: absolute; top: 0; right: 0; font-size: 12px; padding: 5px 12px; border-radius: 20px; font-weight: bold; background: #eee; }
+        .db-status.online { background: #d1fae5; color: #047857; }
+        .db-status.offline { background: #fee2e2; color: #b91c1c; }
+
+        .controls { display: flex; justify-content: center; margin-bottom: 30px; }
+        #playerSearch { padding: 12px 25px; width: 100%; max-width: 400px; border-radius: 50px; border: 2px solid #ddd; font-size: 16px; outline: none; transition: 0.3s; }
+        #playerSearch:focus { border-color: var(--accent); }
+
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        .player-card { background: white; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #eee; transition: 0.3s; position: relative; }
+        .player-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        
+        .id-badge { position: absolute; top: 15px; left: 15px; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+
+        .photo-frame { width: 120px; height: 120px; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, var(--accent), var(--primary)); margin: 0 auto 15px; overflow: hidden; }
+        .player-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; }
+        
+        .p-name { font-size: 18px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 5px; }
+        .p-type { font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; background: #f1f5f9; display: inline-block; padding: 2px 10px; border-radius: 4px; }
+        
+        .status-badge { display: block; margin: 15px auto; padding: 5px; border-radius: 6px; font-size: 11px; font-weight: 800; color: white; text-transform: uppercase; width: 80%; }
+        .bg-sold { background: var(--success); }
+        .bg-unsold { background: var(--danger); }
+        .bg-available { background: #94a3b8; }
+
+        .contact-info { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; font-size: 13px; margin-top: 15px; text-align: left; }
+        .contact-info div { margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+        .contact-info b { color: var(--primary); }
+
+        .nav-btns { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; color: white; border: none; cursor: pointer; }
+        .btn-home { background: var(--accent); }
+        .btn-print { background: var(--primary); }
+
+        @media print { .nav-btns, .controls, .db-status { display: none; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="nav-btns">
+                <a href="index.html" class="btn btn-home">🏠 Home</a>
+                <button class="btn btn-print" onclick="window.print()">🖨️ Export PDF</button>
+            </div>
+            <h1>GDPL PLAYER LIST</h1>
+            <div id="dbStatus" class="db-status">🟡 CHECKING...</div>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="playerSearch" placeholder="Search player name..." onkeyup="filterCards()">
+        </div>
+
+        <div id="galleryGrid" class="gallery-grid">
+            <p style="text-align:center; width:100%;">Loading players...</p>
+        </div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/8.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
+      authDomain: "auction-39d98.firebaseapp.com",
+      databaseURL: "https://auction-39d98-default-rtdb.firebaseio.com", 
+      projectId: "auction-39d98",
+      storageBucket: "auction-39d98.firebasestorage.app",
+      messagingSenderId: "278392876249",
+      appId: "1:278392876249:web:fe1c0167b368f3f91ba2c8"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Connection Tracking
+    db.ref('.info/connected').on('value', snap => {
+        const status = document.getElementById("dbStatus");
+        if (snap.val() === true) {
+            status.innerText = "🟢 CONNECTED";
+            status.className = "db-status online";
+        } else {
+            status.innerText = "🔴 OFFLINE";
+            status.className = "db-status offline";
+        }
+    });
+
+    // Thumbnail API Fix (Bypasses 403 Forbidden)
+    const dummy = "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png";
+    function getPhoto(link) {
+        if (!link || link.trim() === "") return dummy;
+        if (link.includes("drive.google.com")) {
+            let id = "";
+            if (link.includes("id=")) id = link.split("id=")[1].split("&")[0];
+            else if (link.includes("/d/")) id = link.split("/d/")[1].split("/")[0];
+            if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w300`;
+        }
+        return link;
+    }
+
+    function loadData() {
+        const grid = document.getElementById("galleryGrid");
+        db.ref("players").on("value", snap => {
+            const players = snap.val();
+            grid.innerHTML = "";
+            if (!players) {
+                grid.innerHTML = "No players found.";
+                return;
+            }
+
+            Object.keys(players).forEach(key => {
+                const p = players[key];
+                const status = (p.status || 'available').toUpperCase();
+                const statusClass = status === 'SOLD' ? 'bg-success' : (status === 'UNSOLD' ? 'bg-danger' : 'bg-available');
+                
+                const card = document.createElement("div");
+                card.className = "player-card";
+                card.innerHTML = `
+                    <div class="id-badge">ID: ${p.regId || '-'}</div>
+                    <div class="photo-frame">
+                        <img class="player-photo" src="${getPhoto(p.photo)}" onerror="this.src='${dummy}'">
+                    </div>
+                    <div class="p-name">${p.name || 'Unknown'}</div>
+                    <div class="p-type">${p.type || '-'}</div>
+                    <div class="status-badge ${statusClass}">${status}</div>
+                    <div class="contact-info">
+                        <div>📞 <b>${p.mobile || '-'}</b></div>
+                        <div>📍 <b>${p.address || '-'}</b></div>
+                       
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        });
+    }
+
+    function filterCards() {
+        let val = document.getElementById('playerSearch').value.toLowerCase();
+        let cards = document.getElementsByClassName('player-card');
+        for (let card of cards) {
+            let name = card.querySelector('.p-name').innerText.toLowerCase();
+            card.style.display = name.includes(val) ? "block" : "none";
+        }
+    }
+
+    loadData();
+</script>
+</body>
+</html>

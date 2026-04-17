@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Hub - Gautam Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #050a18; --card: #111a2e; --accent: #00d2ff; --admin: #f59e0b; --text: #f8fafc; --success: #27ae60; --danger: #ef4444; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; min-height: 100vh; background-image: radial-gradient(circle at top, #101e3d 0%, #050a18 100%); display: none; }
+        
+        /* --- Top Navigation --- */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 15px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .login-info { font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .logout-btn { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 10px; transition: 0.3s; }
+
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(22px, 5vw, 35px); color: var(--accent); margin: 0; letter-spacing: 2px; text-transform: uppercase; }
+
+        /* --- Shareable Links Box --- */
+        .share-box { max-width: 1200px; margin: 0 auto 25px; background: rgba(0, 210, 255, 0.03); border: 1px dashed rgba(0, 210, 255, 0.4); border-radius: 15px; padding: 15px; }
+        .share-title { font-size: 12px; font-weight: 800; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; text-align: center; letter-spacing: 1px; }
+        .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+        .link-row { background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.05); }
+        .link-row span { font-size: 10px; font-weight: 800; color: #94a3b8; width: 90px; flex-shrink: 0; }
+        .link-row input { flex: 1; background: transparent; border: none; color: #64748b; font-size: 10px; outline: none; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; }
+        .btn-copy { background: var(--accent); color: var(--bg); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: 900; }
+
+        /* --- Main Menu Grid (Responsive) --- */
+        .top-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto 25px; }
+        .menu-card { background: var(--card); border-radius: 20px; padding: 20px 10px; text-decoration: none; color: white; border: 1px solid rgba(255, 255, 255, 0.05); transition: 0.3s; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .menu-card:hover { transform: translateY(-5px); border-color: var(--accent); background: #16243d; box-shadow: 0 10px 30px rgba(0, 210, 255, 0.15); }
+        .icon-box { font-size: 32px; margin-bottom: 10px; filter: drop-shadow(0 0 5px var(--accent)); }
+        .menu-card h3 { margin: 0; font-size: 13px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+
+        /* --- Admin Mini Section --- */
+        .admin-section-title { font-size: 12px; font-weight: 800; color: var(--admin); text-align: center; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; }
+        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; max-width: 1200px; margin: 0 auto 30px; }
+        .admin-mini-card { background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 12px; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: 0.3s; }
+        .admin-mini-card:hover { background: rgba(245, 158, 11, 0.15); border-color: var(--admin); transform: scale(1.05); }
+        .admin-mini-card span { font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: center; }
+
+        /* --- Mobile Tweaks --- */
+        @media (max-width: 600px) {
+            .top-grid { grid-template-columns: 1fr 1fr; } /* Mobile me 2 column side-by-side */
+            .bottom-row { grid-template-columns: 1fr 1fr; }
+            .link-row span { width: 70px; font-size: 9px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="mainContent">
+    <div class="top-bar">
+        <div class="login-info">🟢 <span id="tourBadge" style="color:var(--success); font-weight:900;">--</span> SESSION</div>
+        <button class="logout-btn" onclick="logout()">🔒 LOGOUT</button>
+    </div>
+
+    <div class="header">
+        <h1 id="hubTitle">GDPL HUB</h1>
+        <p style="font-size:10px; opacity:0.6; letter-spacing: 2px; margin-top: 5px;">GAUTAM DIGITAL MASTER ENGINE</p>
+    </div>
+
+    <div class="share-box">
+        <div class="share-title">🔗 Public Shareable Links</div>
+        <div class="link-grid">
+            <div class="link-row"><span>👤 Player Reg:</span><input type="text" id="linkReg" readonly><button class="btn-copy" onclick="copyLink('linkReg')">COPY</button></div>
+            <div class="link-row"><span>📱 Mobile Hub:</span><input type="text" id="linkMob" readonly><button class="btn-copy" onclick="copyLink('linkMob')">COPY</button></div>
+            <div class="link-row"><span>🖼️ Gallery:</span><input type="text" id="linkGal" readonly><button class="btn-copy" onclick="copyLink('linkGal')">COPY</button></div>
+            <div class="link-row"><span>🎥 OBS Overlay:</span><input type="text" id="linkObs" readonly><button class="btn-copy" onclick="copyLink('linkObs')">COPY</button></div>
+        </div>
+    </div>
+
+    <div class="top-grid">
+        <a href="auction.html" target="_blank" class="menu-card dyn-link"><div class="icon-box">🔨</div><h3>Auction<br>Control</h3></a>
+        <a href="display.html" target="_blank" class="menu-card dyn-link"><div class="icon-box">🖥️</div><h3>LED<br>Display</h3></a>
+        <a href="overlay.html" target="_blank" class="menu-card dyn-link"><div class="icon-box">🎥</div><h3>Live<br>Overlay</h3></a>
+        <a href="mobile_view.html" target="_blank" class="menu-card dyn-link"><div class="icon-box">📱</div><h3>Public<br>Hub</h3></a>
+        <a href="player_list.html" target="_blank" class="menu-card dyn-link"><div class="icon-box">👥</div><h3>Visual<br>Gallery</h3></a>
+        <a href="analytics.html" target="_blank" class="menu-card dyn-link"><div class="icon-box">📊</div><h3>Market<br>Stats</h3></a>
+    </div>
+
+    <div class="admin-section-title">🛡️ Admin Control & Tools</div>
+    <div class="bottom-row">
+        <a href="verify_payments.html" target="_blank" class="admin-mini-card dyn-link" style="border-color: var(--success); background: rgba(39, 174, 96, 0.05);"><div style="font-size: 20px;">✅</div> <span>Verify<br>Payments</span></a>
+        <a href="master_edit.html" target="_blank" class="admin-mini-card dyn-link"><div style="font-size: 20px;">⚙️</div> <span>Master<br>Settings</span></a>
+        <a href="quick_team.html" target="_blank" class="admin-mini-card dyn-link"><div style="font-size: 20px;">⚡</div> <span>Quick<br>Team</span></a>
+        <a href="player_reg.html" target="_blank" class="admin-mini-card dyn-link"><div style="font-size: 20px;">📝</div> <span>Add<br>Player</span></a>
+        <a href="import.html" target="_blank" class="admin-mini-card dyn-link"><div style="font-size: 20px;">📋</div> <span>Bulk<br>Import</span></a>
+    </div>
+</div>
+
+<script>
+    // --- 🔐 SECURITY CHECKER ---
+    function checkSecurity() {
+        const authStatus = localStorage.getItem("isLoggedIn");
+        const authorizedTour = localStorage.getItem("activeTournamentID");
+        return (authStatus === "true" && authorizedTour);
+    }
+
+    if (!checkSecurity()) {
+        window.location.replace("login.html");
+    } else {
+        document.body.style.display = "block";
+        const activeTour = localStorage.getItem("activeTournamentID");
+        document.getElementById("hubTitle").innerText = activeTour;
+        document.getElementById("tourBadge").innerText = activeTour;
+
+        // 🔒 ENCRYPTION & LINKS
+        const encodedTour = btoa(activeTour);
+        const links = document.querySelectorAll('.dyn-link');
+        links.forEach(link => {
+            let href = link.getAttribute('href');
+            link.setAttribute('href', href.split('?')[0] + '?id=' + encodedTour);
+        });
+
+        let baseUrl = window.location.href.split('index.html')[0];
+        if(!baseUrl.endsWith('/')) baseUrl += '/';
+
+        document.getElementById("linkReg").value = baseUrl + "player_reg.html?id=" + encodedTour;
+        document.getElementById("linkMob").value = baseUrl + "mobile_view.html?id=" + encodedTour;
+        document.getElementById("linkGal").value = baseUrl + "player_list.html?id=" + encodedTour;
+        document.getElementById("linkObs").value = baseUrl + "overlay.html?id=" + encodedTour;
+    }
+
+    function copyLink(inputId) {
+        const copyText = document.getElementById(inputId);
+        copyText.select();
+        document.execCommand("copy");
+        alert("Encrypted Link Copied!");
+    }
+
+    function logout() {
+        if(confirm("Lock the system and logout?")) {
+            localStorage.clear();
+            window.location.replace("login.html");
+        }
+    }
+
+    window.addEventListener('storage', function(event) {
+        if (event.key === 'activeTournamentID' || event.key === 'isLoggedIn') {
+            window.location.replace("login.html");
+        }
+    });
+</script>
+</body>
+</html>
