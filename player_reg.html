@@ -123,8 +123,44 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
 <script>
+    // 🟢 1. Meta API Credentials (आपका खजाना)
+    const WHATSAPP_TOKEN = "EAAQSRWbYCw8BRHZC2cHD2bEdzlpJTilZAnsot2UBXbiIRL8eOP8GwmijY0ZCGyzdwbBKA6ZBqzQb9TL9YfZCQxb6ZADYNmKddjeFuBJ0ZAS53N7bG5TTrXNZB8h5u41jh4LgZCKCcNB93YZAHQ0ZAn9gu5WbjZBlIoHWZBokgoObtJEYZBzU1kZAVWprF0zkPlr23GDpGjUZCW2GQOCSuOJbRi1D27WUXfhJr7Di12tTFwA13x2niZATd4meOCs7hyOPGcOQzYOwlupZBerZC2RNpXdMHnTCSuty8Is01pZBuQkN0M1KkgZDZD";
+    const PHONE_ID = "994940873712934";
+
+    // 🚀 2. WhatsApp Message भेजने वाला फंक्शन
+    async function sendRegistrationWhatsApp(playerMobile) {
+        const url = `https://graph.facebook.com/v20.0/${PHONE_ID}/messages`;
+        
+        const data = {
+            messaging_product: "whatsapp",
+            to: "91" + playerMobile, // 91 के साथ खिलाड़ी का 10 अंकों का नंबर
+            type: "template",
+            template: {
+                name: "hello_world", // टेस्टिंग के लिए डिफॉल्ट टेम्पलेट
+                language: { code: "en_US" }
+            }
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            console.log("WhatsApp API Response:", result);
+        } catch (error) {
+            console.error("❌ WhatsApp Network Error:", error);
+        }
+    }
+
+    // ---------------------------------------------------------
+    // Firebase & Registration Logic
+    // ---------------------------------------------------------
     const firebaseConfig = {
         apiKey: "AIzaSyAhGvK-ZMH721sHcuHsWjpZAxPTI5ulLsU",
         authDomain: "auction-39d98.firebaseapp.com",
@@ -211,7 +247,11 @@
                 soldPrice: 0
             };
 
+            // Firebase में सेव करें
             await db.ref(tourPath + "/" + regId).set(playerData);
+
+            // ⚡ यहाँ WhatsApp अलर्ट कॉल कर रहे हैं!
+            sendRegistrationWhatsApp(playerData.mobile);
 
             // Show Success Card
             document.getElementById('cardTourName').innerText = activeTour;
